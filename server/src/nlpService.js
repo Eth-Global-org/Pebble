@@ -1,5 +1,6 @@
 import { CONFIG } from './config.js';
 import { resolveToken } from './tokenWhitelist.js';
+import { getWalletBalances } from './chain.js';
 
 // In-memory multi-turn session store
 const sessionStore = new Map();
@@ -49,6 +50,26 @@ export async function parseUserIntent(prompt, sessionId = null) {
 
   const cleanPrompt = prompt.trim();
   const session = getOrCreateSession(sessionId);
+
+  // Handle balance inquiries directly with live on-chain balances
+  const lower = cleanPrompt.toLowerCase();
+  if (lower.includes('balence') || lower.includes('balance') || lower.includes('my funds') || lower.includes('my holdings') || lower.includes('how much eth do i have') || lower.includes('what do i have')) {
+    try {
+      const walletInfo = await getWalletBalances();
+      const balanceLines = Object.values(walletInfo.balances)
+        .map((b) => `• **${b.symbol}**: ${parseFloat(b.balance).toFixed(4)}`)
+        .join('\n');
+      const responseMsg = `**Your Burner Wallet Balances (Sepolia):**\nAddress: \`${walletInfo.address}\`\n\n${balanceLines}\n\n*Network: Sepolia Testnet*`;
+      session.history.push({ role: 'user', text: cleanPrompt });
+      session.history.push({ role: 'model', text: responseMsg });
+      return {
+        isTrade: false,
+        message: responseMsg
+      };
+    } catch {
+      // Fall through to LLM
+    }
+  }
 
   // 1. Primary path: Use Gemini LLM with full multi-turn session memory
   if (CONFIG.geminiApiKey) {
