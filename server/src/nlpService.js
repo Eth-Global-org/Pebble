@@ -1,6 +1,7 @@
 import { CONFIG } from './config.js';
 import { resolveToken } from './tokenWhitelist.js';
 import { getWalletBalances } from './chain.js';
+import { getLiveExchangeRate } from './simulationService.js';
 
 // In-memory multi-turn session store
 const sessionStore = new Map();
@@ -71,11 +72,25 @@ export async function parseUserIntent(prompt, sessionId = null) {
     }
   }
 
+  // Handle direct price inquiries and target amount requests (e.g. "get 1 eth for usdc", "price of eth")
+  const priceCheckResult = await handlePriceAndExchangeInquiry(cleanPrompt, session);
+  if (priceCheckResult) {
+    return priceCheckResult;
+  }
+
   // 1. Primary path: Use Gemini LLM with full multi-turn session memory
   if (CONFIG.geminiApiKey) {
     try {
       const geminiResult = await parseWithGemini(cleanPrompt, session);
       if (geminiResult) {
+        // If Gemini erroneously responded with an unhelpful "not enough balance" refusal, provide the live exchange price instead
+        if (!geminiResult.isTrade && geminiResult.message && (geminiResult.message.includes('not enough') || geminiResult.message.includes('significantly more') || geminiResult.message.includes('insufficient'))) {
+          const livePriceFallback = await handlePriceAndExchangeInquiry(cleanPrompt, session);
+          if (livePriceFallback) {
+            return livePriceFallback;
+          }
+        }
+
         // Record in conversation history
         session.history.push({ role: 'user', text: cleanPrompt });
         if (geminiResult.isTrade) {
@@ -98,6 +113,122 @@ export async function parseUserIntent(prompt, sessionId = null) {
 
   // 2. Offline fallback path with basic session memory
   return parseWithRuleEngine(cleanPrompt, session);
+}
+
+async function handlePriceAndExchangeInquiry(cleanPrompt, session) {
+  const lower = cleanPrompt.toLowerCase();
+
+  // Pattern 1: Target amount queries like:
+  // - "get 1 eth for usdc", "buy 1 eth with usdc"
+  // - "swap usdc for 1 eth", "trade usdc for 1 eth"
+  // - "how much usdc for 1 eth", "how much usdc to buy 1 eth"
+  // - "buy 1 eth", "get 1 eth"
+  let targetAmountOut = null;
+  let tokenOut = null;
+  let tokenIn = null;
+
+  // 1a. "get 1 eth for usdc", "buy 1 eth with usdc"
+  const targetMatchA = lower.match(/(?:get|buy|receive|purchase)\s+([0-9]+(?:\.[0-9]+)?)\s*([a-zA-Z]+)\s*(?:for|with|using|from)\s*([a-zA-Z]+)/i);
+  // 1b. "swap usdc for 1 eth", "trade usdc for 1 eth", "exchange usdc for 1 eth"
+  const targetMatchB = lower.match(/(?:swap|trade|exchange)\s+([a-zA-Z]+)\s+(?:for|to|into)\s+([0-9]+(?:\.[0-9]+)?)\s*([a-zA-Z]+)/i);
+  // 1c. "how much usdc for 1 eth", "how much usdc to get 1 eth"
+  const targetMatchC = lower.match(/how\s+much\s+([a-zA-Z]+)\s+(?:for|to get|to buy|needed for)\s+([0-9]+(?:\.[0-9]+)?)\s*([a-zA-Z]+)/i);
+  // 1d. "buy 1 eth", "get 1 eth", "purchase 0.5 link"
+  const targetMatchD = lower.match(/^(?:i\s+want\s+to\s+)?(?:buy|get|purchase|want)\s+([0-9]+(?:\.[0-9]+)?)\s*([a-zA-Z]+)$/i);
+
+  if (targetMatchA) {
+    targetAmountOut = parseFloat(targetMatchA[1]);
+    tokenOut = resolveToken(targetMatchA[2]);
+    tokenIn = resolveToken(targetMatchA[3]);
+  } else if (targetMatchB) {
+    tokenIn = resolveToken(targetMatchB[1]);
+    targetAmountOut = parseFloat(targetMatchB[2]);
+    tokenOut = resolveToken(targetMatchB[3]);
+  } else if (targetMatchC) {
+    tokenIn = resolveToken(targetMatchC[1]);
+    targetAmountOut = parseFloat(targetMatchC[2]);
+    tokenOut = resolveToken(targetMatchC[3]);
+  } else if (targetMatchD) {
+    targetAmountOut = parseFloat(targetMatchD[1]);
+    tokenOut = resolveToken(targetMatchD[2]);
+    if (tokenOut) {
+      tokenIn = resolveToken(tokenOut.symbol === 'ETH' ? 'USDC' : 'ETH');
+    }
+  }
+
+  if (tokenIn && tokenOut && tokenIn.symbol !== tokenOut.symbol && targetAmountOut > 0) {
+    try {
+      const rateInfo = await getLiveExchangeRate(tokenIn.symbol, tokenOut.symbol);
+      if (rateInfo) {
+        const rateBtoA = parseFloat(rateInfo.rateBtoA); // 1 tokenOut = X tokenIn
+        const rateAtoB = parseFloat(rateInfo.rateAtoB); // 1 tokenIn = Y tokenOut
+        const requiredIn = targetAmountOut * rateBtoA;
+
+        const walletInfo = await getWalletBalances();
+        const userBalanceObj = walletInfo.balances[tokenIn.symbol];
+        const userBalance = userBalanceObj ? parseFloat(userBalanceObj.balance).toFixed(4) : '0.0000';
+        const numericBalance = parseFloat(userBalance);
+
+        if (numericBalance < requiredIn) {
+          const userCanBuy = (numericBalance * rateAtoB).toFixed(4);
+          const message = `**Uniswap V2 Live Exchange Price:**\n• **1 ${tokenOut.symbol} ≈ ${rateInfo.rateBtoA} ${tokenIn.symbol}** (1 ${tokenIn.symbol} ≈ ${rateInfo.rateAtoB} ${tokenOut.symbol})\n\n• To purchase **${targetAmountOut} ${tokenOut.symbol}**, you would need approximately **${requiredIn.toFixed(2)} ${tokenIn.symbol}**.\n• Your burner wallet currently holds **${userBalance} ${tokenIn.symbol}**, which can purchase approximately **${userCanBuy} ${tokenOut.symbol}**.\n\nWould you like to swap your **${userBalance} ${tokenIn.symbol}** for **~${userCanBuy} ${tokenOut.symbol}**? (Or enter an amount you'd like to trade)`;
+          session.history.push({ role: 'user', text: cleanPrompt });
+          session.history.push({ role: 'model', text: message });
+          return { isTrade: false, message };
+        } else {
+          return {
+            isTrade: true,
+            intent: {
+              action: 'swap',
+              tokenIn: tokenIn.symbol,
+              tokenOut: tokenOut.symbol,
+              amountIn: parseFloat(requiredIn.toFixed(4)),
+              network: 'sepolia',
+              confidence: 'high'
+            }
+          };
+        }
+      }
+    } catch {
+      // Fall through
+    }
+  }
+
+  // Pattern 2: General price and exchange rate inquiries
+  // e.g. "price of eth in usdc", "how much is 1 eth in usdc", "exchange rate", "eth price"
+  const isPriceQuery = lower.includes('price') || lower.includes('exchange rate') || lower.includes('rate of') || lower.includes('how much is') || lower.includes('how much does') || lower.includes('exchange price') || lower.includes('what is the rate');
+  if (isPriceQuery) {
+    const foundTokens = [];
+    for (const token of Object.values(CONFIG.tokens)) {
+      if (lower.includes(token.symbol.toLowerCase()) || lower.includes(token.name.toLowerCase())) {
+        if (!foundTokens.includes(token.symbol)) {
+          foundTokens.push(token.symbol);
+        }
+      }
+    }
+
+    if (foundTokens.length > 0) {
+      let tokenA = foundTokens[0];
+      let tokenB = foundTokens[1] || (tokenA === 'USDC' ? 'ETH' : 'USDC');
+      if (tokenA === tokenB) {
+        tokenB = tokenA === 'USDC' ? 'ETH' : 'USDC';
+      }
+
+      try {
+        const rateInfo = await getLiveExchangeRate(tokenA, tokenB);
+        if (rateInfo) {
+          const message = `**Uniswap V2 Live Exchange Price:**\n• **1 ${tokenA} ≈ ${rateInfo.rateAtoB} ${tokenB}**\n• **1 ${tokenB} ≈ ${rateInfo.rateBtoA} ${tokenA}**\n\n*Network: Sepolia Testnet (Uniswap V2 Router)*`;
+          session.history.push({ role: 'user', text: cleanPrompt });
+          session.history.push({ role: 'model', text: message });
+          return { isTrade: false, message };
+        }
+      } catch {
+        // Fall through
+      }
+    }
+  }
+
+  return null;
 }
 
 function buildTradeHistoryContext(session) {
@@ -131,8 +262,9 @@ ${tradeHistoryContext}
 Instructions:
 1. Maintain context across conversation turns. If the user previously specified tokens and now provides an amount (or changes a parameter), combine previous turns into a complete trade intent.
 2. If the user asks about their previous trades, past receipts, or what they traded, answer conversationally using the Session Trade History.
-3. If the user's trade instruction is incomplete (missing amount or tokens), ask a helpful clarifying question with {"isTrade": false, "message": "question"}.
-4. If the user wants to execute a trade, output:
+3. NEVER say 'not enough balance' or refuse a trade based on user balances. You are an intent parser, not an execution engine. Output the intent accurately.
+4. When the user says "get 1 ETH for USDC" or "buy 1 ETH with USDC", this is a swap intent where tokenIn is "USDC" and tokenOut is "ETH".
+5. If the user wants to execute a trade, output:
 {
   "isTrade": true,
   "intent": {
@@ -144,7 +276,7 @@ Instructions:
     "confidence": "high" or "low"
   }
 }
-5. For greetings, token inquiries, or market questions, respond with:
+6. For greetings or general market questions, respond with:
 {
   "isTrade": false,
   "message": "helpful response"

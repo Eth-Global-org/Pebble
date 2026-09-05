@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { MessageSquare, Shield, Coins, Copy, Check, ExternalLink, Receipt } from 'lucide-react';
-import { parseIntent, executeTrade, getWalletInfo, getSupportedTokens, getSessionReceipts, clearSession } from './services/api.js';
+import {
+  parseIntent,
+  executeTrade,
+  getWalletInfo,
+  getSupportedTokens,
+  getSessionReceipts,
+  clearSession
+} from './services/api.js';
+import { Sidebar } from './components/Sidebar.jsx';
+import { Header } from './components/Header.jsx';
+import { MetricCards } from './components/MetricCards.jsx';
+import { ReceiptsTable } from './components/ReceiptsTable.jsx';
 import { ChatInterface } from './components/ChatInterface.jsx';
 import { TokenListModal } from './components/TokenListModal.jsx';
 import { ReceiptsHistoryModal } from './components/ReceiptsHistoryModal.jsx';
@@ -14,6 +24,7 @@ export function App() {
     return newId;
   });
 
+  const [activeTab, setActiveTab] = useState('terminal'); // 'terminal' | 'analytics' | 'receipts' | 'tokens'
   const [messages, setMessages] = useState([]);
   const [walletInfo, setWalletInfo] = useState(null);
   const [supportedTokens, setSupportedTokens] = useState([]);
@@ -22,14 +33,13 @@ export function App() {
   const [isReceiptsModalOpen, setIsReceiptsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
-  const [copiedWallet, setCopiedWallet] = useState(false);
 
   const fetchWallet = useCallback(async () => {
     try {
       const data = await getWalletInfo();
       setWalletInfo(data);
     } catch {
-      // Ignore initial background fetch error
+      // Ignore background fetch error
     }
   }, []);
 
@@ -49,7 +59,7 @@ export function App() {
       const list = await getSessionReceipts(sessionId);
       setSessionReceipts(list);
     } catch {
-      // Ignore initial receipts fetch error
+      // Ignore initial receipts error
     }
   }, [sessionId]);
 
@@ -58,14 +68,6 @@ export function App() {
     fetchTokens();
     fetchReceipts();
   }, [fetchWallet, fetchTokens, fetchReceipts]);
-
-  const copyWalletAddress = () => {
-    if (walletInfo?.address) {
-      navigator.clipboard.writeText(walletInfo.address);
-      setCopiedWallet(true);
-      setTimeout(() => setCopiedWallet(false), 2000);
-    }
-  };
 
   const handleSendMessage = async (text) => {
     if (!text.trim()) return;
@@ -84,7 +86,7 @@ export function App() {
       const data = await parseIntent(text, sessionId);
 
       if (!data.isTrade) {
-        // Conversational or informational assistant response
+        // Conversational response
         const botMessage = {
           id: Date.now() + 1,
           role: 'bot',
@@ -92,24 +94,23 @@ export function App() {
         };
         setMessages((prev) => [...prev, botMessage]);
       } else {
-        // Trade intent parsed and simulated proposal generated
+        // Proposal response
         const botMessage = {
           id: Date.now() + 1,
           role: 'bot',
-          text: `I've prepared and simulated your trade: swap **${data.proposal.amountInFormatted} ${data.proposal.tokenIn.symbol}** for estimated **${parseFloat(data.proposal.estimatedAmountOutFormatted).toFixed(4)} ${data.proposal.tokenOut.symbol}** on Sepolia.\n\nPlease review the details below to confirm or cancel:`,
+          text: `I've prepared and simulated your trade: swap **${data.proposal.amountInFormatted} ${data.proposal.tokenIn.symbol}** for estimated **${parseFloat(data.proposal.estimatedAmountOutFormatted).toFixed(4)} ${data.proposal.tokenOut.symbol}** on Sepolia.\n\nPlease review to confirm or cancel:`,
           proposal: data.proposal,
           intent: data.intent
         };
         setMessages((prev) => [...prev, botMessage]);
       }
     } catch (error) {
-      // Standardized ApiError handling
       const errorMessage = {
         id: Date.now() + 1,
         role: 'bot',
         error: {
           code: error.code || 'UNKNOWN_ERROR',
-          message: error.message || 'An error occurred during trade parsing.',
+          message: error.message || 'An error occurred while parsing trade intent.',
           recoverable: error.recoverable !== false
         },
         retryPrompt: text
@@ -125,8 +126,7 @@ export function App() {
 
     try {
       const result = await executeTrade(proposalId, sessionId);
-      
-      // Update the specific message in the conversation feed with execution results and receipt
+
       setMessages((prev) =>
         prev.map((msg) => {
           if (msg.id === messageId) {
@@ -141,10 +141,9 @@ export function App() {
       );
 
       if (result.receipt) {
-        setSessionReceipts((prev) => [...prev, result.receipt]);
+        setSessionReceipts((prev) => [result.receipt, ...prev]);
       }
 
-      // Refresh wallet balance after swap
       await fetchWallet();
     } catch (error) {
       setMessages((prev) =>
@@ -191,130 +190,223 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0E14] text-slate-100 flex flex-col font-sans">
-      {/* Top Navbar */}
-      <header className="border-b border-[#232B3B] bg-[#151A23]/80 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
-          {/* Brand Logo & Name */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-indigo-600 p-0.5 shadow-lg shadow-brand-500/10 flex items-center justify-center">
-              <div className="w-full h-full bg-[#0B0E14] rounded-[10px] flex items-center justify-center">
-                <MessageSquare className="w-5 h-5 text-brand-500" />
+    <div className="min-h-screen bg-[#F8FAFC] flex font-sans text-slate-900">
+      {/* Left Navigation Sidebar matching screenshot */}
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        walletInfo={walletInfo}
+        receiptsCount={sessionReceipts.length}
+      />
+
+      {/* Main Workspace Area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <Header
+          walletInfo={walletInfo}
+          activeTab={activeTab}
+          onRefreshWallet={fetchWallet}
+          onSearchSelect={(query) => {
+            setActiveTab('terminal');
+            handleSendMessage(query);
+          }}
+        />
+
+        <main className="p-4 sm:p-6 max-w-7xl mx-auto w-full space-y-4">
+          {/* Workspace Subheader with Real Contract Info */}
+          <div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900 tracking-tight">Trading Terminal</h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Natural language Uniswap V2 execution with automated safety rails
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400 font-mono">Uniswap V2 Router:</span>
+                <a
+                  href="https://sepolia.etherscan.io/address/0xC532a74256D3Db42D0Bf7a0400fEFDbad7694008"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs font-mono bg-white border border-slate-200 px-2 py-0.5 rounded text-indigo-600 hover:text-indigo-800 hover:underline font-medium"
+                >
+                  0xC532...4008 ↗
+                </a>
               </div>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="font-bold text-base tracking-tight text-white">SwapChat</h1>
-                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-brand-500/10 border border-brand-500/20 text-brand-400 font-semibold">
-                  v1.0
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400 hidden sm:block">NLP-Powered Sepolia DEX Assistant</p>
+
+            {/* Real Navigation Tabs: Terminal | Trade Receipts | Token Balances */}
+            <div className="flex items-center gap-6 border-b border-slate-200 text-xs font-medium text-slate-500 mb-4">
+              <button
+                onClick={() => setActiveTab('terminal')}
+                className={`pb-2 transition-colors relative ${
+                  activeTab === 'terminal'
+                    ? 'text-indigo-600 font-semibold border-b-2 border-indigo-600 -mb-[1px]'
+                    : 'text-slate-500 hover:text-slate-900 border-b-2 border-transparent'
+                }`}
+              >
+                Chat Terminal
+              </button>
+
+              <button
+                onClick={() => setActiveTab('receipts')}
+                className={`pb-2 transition-colors relative flex items-center gap-1.5 ${
+                  activeTab === 'receipts'
+                    ? 'text-indigo-600 font-semibold border-b-2 border-indigo-600 -mb-[1px]'
+                    : 'text-slate-500 hover:text-slate-900 border-b-2 border-transparent'
+                }`}
+              >
+                <span>Trade Receipts</span>
+                {sessionReceipts.length > 0 && (
+                  <span className="text-[10px] font-mono font-bold bg-indigo-50 text-indigo-700 px-1.5 py-0.2 rounded-full border border-indigo-100">
+                    {sessionReceipts.length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => setActiveTab('tokens')}
+                className={`pb-2 transition-colors relative ${
+                  activeTab === 'tokens'
+                    ? 'text-indigo-600 font-semibold border-b-2 border-indigo-600 -mb-[1px]'
+                    : 'text-slate-500 hover:text-slate-900 border-b-2 border-transparent'
+                }`}
+              >
+                Token Balances ({supportedTokens.length})
+              </button>
             </div>
           </div>
 
-          {/* Wallet, Network Pill & Action Tools */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Receipts button */}
-            <button
-              type="button"
-              onClick={() => setIsReceiptsModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0B0E14] border border-[#232B3B] hover:border-slate-600 text-xs font-medium text-slate-300 transition-colors"
-            >
-              <Receipt className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="hidden sm:inline">Receipts</span>
-              {sessionReceipts.length > 0 && (
-                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-mono font-semibold">
-                  {sessionReceipts.length}
-                </span>
-              )}
-            </button>
+          {/* Real Metric Cards */}
+          <MetricCards
+            receipts={sessionReceipts}
+            walletBalances={walletInfo?.balances}
+          />
 
-            {/* Supported Tokens button */}
-            <button
-              type="button"
-              onClick={() => setIsTokensModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0B0E14] border border-[#232B3B] hover:border-slate-600 text-xs font-medium text-slate-300 transition-colors"
-            >
-              <Coins className="w-3.5 h-3.5 text-brand-500" />
-              <span className="hidden sm:inline">Tokens</span>
-            </button>
+          {/* Dynamic Content Views */}
+          {activeTab === 'terminal' && (
+            <div className="space-y-6">
+              {/* Chat Terminal Card */}
+              <ChatInterface
+                messages={messages}
+                onSendMessage={handleSendMessage}
+                onConfirmTrade={handleConfirmTrade}
+                onCancelTrade={handleCancelTrade}
+                onClearChat={handleClearChat}
+                isLoading={isLoading}
+                isExecuting={isExecuting}
+              />
 
-            {/* Network Indicator */}
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0B0E14] border border-[#232B3B] text-xs font-mono text-slate-300">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="hidden sm:inline">Sepolia Testnet</span>
-              <span className="sm:hidden">Sepolia</span>
+              {/* Data Table beneath chat */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    Session Trade Receipts
+                  </h3>
+                  {sessionReceipts.length > 0 && (
+                    <button
+                      onClick={() => setActiveTab('receipts')}
+                      className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                    >
+                      View All Receipts →
+                    </button>
+                  )}
+                </div>
+                <ReceiptsTable receipts={sessionReceipts} />
+              </div>
             </div>
+          )}
 
-            {/* Burner Wallet Pill */}
-            {walletInfo && (
-              <div className="flex items-center gap-1 bg-[#0B0E14] border border-[#232B3B] rounded-xl px-2.5 py-1 text-xs">
-                <span className="text-slate-400 text-[11px] hidden md:inline">Burner:</span>
-                <span className="font-mono text-slate-200">
-                  {walletInfo.address.slice(0, 6)}...{walletInfo.address.slice(-4)}
-                </span>
+          {activeTab === 'receipts' && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-slate-900">All Confirmed Session Receipts</h3>
                 <button
-                  type="button"
-                  onClick={copyWalletAddress}
-                  title="Copy Burner Wallet Address"
-                  className="p-1 hover:bg-[#232B3B] rounded text-slate-400 hover:text-white transition-colors ml-0.5"
+                  onClick={() => setActiveTab('terminal')}
+                  className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
                 >
-                  {copiedWallet ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                  ← Back to Terminal
                 </button>
               </div>
-            )}
-          </div>
-        </div>
-      </header>
+              <ReceiptsTable receipts={sessionReceipts} />
+            </div>
+          )}
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl mx-auto w-full p-4 md:p-6 flex flex-col">
-        {/* Safety Banner */}
-        <div className="mb-4 bg-indigo-950/20 border border-indigo-700/30 rounded-xl p-3 flex items-center justify-between text-xs text-indigo-200">
-          <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4 text-indigo-400 shrink-0" />
-            <span>
-              <strong>Safety Protected:</strong> Session memory enabled • Simulation before send • On-chain trade receipts
-            </span>
-          </div>
-          <a
-            href="https://sepoliafaucet.com"
-            target="_blank"
-            rel="noreferrer"
-            className="hidden md:inline-flex items-center gap-1 text-brand-400 hover:underline shrink-0 text-xs font-medium"
-          >
-            <span>Sepolia Faucet</span>
-            <ExternalLink className="w-3 h-3" />
-          </a>
-        </div>
+          {activeTab === 'tokens' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Whitelisted Token Reserves</h3>
+                  <p className="text-xs text-slate-500">
+                    Live ERC-20 balances held in your active Sepolia burner wallet
+                  </p>
+                </div>
+                <button
+                  onClick={fetchWallet}
+                  className="px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                  Refresh Balances
+                </button>
+              </div>
 
-        {/* Chat Feed */}
-        <div className="flex-1 flex flex-col min-h-0">
-          <ChatInterface
-            messages={messages}
-            onSendMessage={handleSendMessage}
-            onConfirmTrade={handleConfirmTrade}
-            onCancelTrade={handleCancelTrade}
-            onClearChat={handleClearChat}
-            isLoading={isLoading}
-            isExecuting={isExecuting}
-          />
-        </div>
-      </main>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {supportedTokens.map((token) => {
+                  const balanceData = walletInfo?.balances?.[token.symbol];
+                  const balanceFormatted = balanceData?.balance || '0.0';
 
-      {/* Token List & Balances Modal */}
+                  return (
+                    <div
+                      key={token.symbol}
+                      className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-indigo-50 border border-indigo-100 font-bold text-xs flex items-center justify-center text-indigo-700">
+                            {token.symbol.slice(0, 3)}
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-xs text-slate-900">{token.name}</h4>
+                            <span className="font-mono text-[10px] text-slate-400">{token.symbol}</span>
+                          </div>
+                        </div>
+                        <span className="text-xs font-mono font-semibold text-slate-900">
+                          {parseFloat(balanceFormatted).toFixed(4)}
+                        </span>
+                      </div>
+
+                      <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                        <span className="text-slate-400 font-mono text-[11px]">Decimals: {token.decimals}</span>
+                        <button
+                          onClick={() => {
+                            setActiveTab('terminal');
+                            handleSendMessage(`Swap 0.05 ETH for ${token.symbol}`);
+                          }}
+                          className="text-indigo-600 hover:text-indigo-800 font-medium"
+                        >
+                          Quick Swap →
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+
+      {/* Modals */}
       <TokenListModal
         isOpen={isTokensModalOpen}
         onClose={() => setIsTokensModalOpen(false)}
         tokens={supportedTokens}
         walletBalances={walletInfo?.balances}
         onSelectToken={(token) => {
+          setActiveTab('terminal');
           handleSendMessage(`Swap 0.05 ETH for ${token.symbol}`);
         }}
       />
 
-      {/* Receipts History Modal */}
       <ReceiptsHistoryModal
         isOpen={isReceiptsModalOpen}
         onClose={() => setIsReceiptsModalOpen(false)}

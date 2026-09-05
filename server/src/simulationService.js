@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import { ethers } from 'ethers';
 import { CONFIG } from './config.js';
 import { ApiError, ErrorCode } from './errors.js';
-import { getRouterPath } from './tokenWhitelist.js';
+import { getRouterPath, resolveToken } from './tokenWhitelist.js';
 import { getRouterContract, getProvider, estimateGasPrice } from './chain.js';
 
 // Base testnet price references for fallback estimation (ETH ≈ $2600, LINK ≈ $12, DAI/USDC ≈ $1)
@@ -13,6 +13,54 @@ const PRICE_REFERENCES_USD = {
   DAI: 1.0,
   LINK: 12.0
 };
+
+export async function getLiveExchangeRate(tokenASymbol, tokenBSymbol, customAmountA = null) {
+  const tokenA = resolveToken(tokenASymbol);
+  const tokenB = resolveToken(tokenBSymbol);
+  if (!tokenA || !tokenB) return null;
+
+  const pathAB = getRouterPath(tokenA.symbol, tokenB.symbol);
+  const pathBA = getRouterPath(tokenB.symbol, tokenA.symbol);
+  if (!pathAB || !pathBA) return null;
+
+  let rateAtoB = 0;
+  let rateBtoA = 0;
+  const router = getRouterContract(getProvider());
+
+  // 1 unit of tokenA -> tokenB
+  try {
+    const oneUnitA = ethers.parseUnits('1', tokenA.decimals);
+    const amountsOutAB = await router.getAmountsOut(oneUnitA, pathAB);
+    rateAtoB = parseFloat(ethers.formatUnits(amountsOutAB[amountsOutAB.length - 1], tokenB.decimals));
+  } catch {
+    const fallbackUnits = calculateFallbackQuote(tokenA, tokenB, 1);
+    rateAtoB = parseFloat(ethers.formatUnits(fallbackUnits, tokenB.decimals));
+  }
+
+  // 1 unit of tokenB -> tokenA
+  try {
+    const oneUnitB = ethers.parseUnits('1', tokenB.decimals);
+    const amountsOutBA = await router.getAmountsOut(oneUnitB, pathBA);
+    rateBtoA = parseFloat(ethers.formatUnits(amountsOutBA[amountsOutBA.length - 1], tokenA.decimals));
+  } catch {
+    const fallbackUnits = calculateFallbackQuote(tokenB, tokenA, 1);
+    rateBtoA = parseFloat(ethers.formatUnits(fallbackUnits, tokenA.decimals));
+  }
+
+  let customOutput = null;
+  if (customAmountA && customAmountA > 0) {
+    customOutput = (customAmountA * rateAtoB).toFixed(4);
+  }
+
+  return {
+    tokenA: tokenA.symbol,
+    tokenB: tokenB.symbol,
+    rateAtoB: rateAtoB > 10 ? rateAtoB.toFixed(2) : rateAtoB.toFixed(4),
+    rateBtoA: rateBtoA > 10 ? rateBtoA.toFixed(2) : rateBtoA.toFixed(6),
+    customAmountA,
+    customOutput
+  };
+}
 
 export async function simulateTrade(validatedData) {
   const { tokenInMeta, tokenOutMeta, amountInUnits, numericAmountIn, requiresApproval } = validatedData;

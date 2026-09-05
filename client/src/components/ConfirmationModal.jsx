@@ -26,19 +26,19 @@ export function ConfirmationModal({ proposal, onConfirm, onCancel, isExecuting }
   const canConfirm = !isExpired && !isExecuting && (!isHighImpact || hasAcknowledgedImpact);
 
   return (
-    <div className="bg-[#151A23] border border-[#232B3B] rounded-2xl p-5 shadow-2xl my-4 text-slate-100 animate-in fade-in zoom-in-95 duration-200">
+    <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-lg my-3 text-slate-900 animate-in fade-in duration-150">
       {/* Header & Expiry Countdown */}
-      <div className="flex items-center justify-between border-b border-[#232B3B] pb-3 mb-4">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
         <div className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-full bg-brand-500 animate-pulse" />
-          <h3 className="font-semibold text-base text-white">Trade Confirmation</h3>
+          <div className="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-pulse" />
+          <h3 className="font-semibold text-sm text-slate-900">Trade Confirmation</h3>
         </div>
         <div className={`flex items-center gap-1.5 font-mono text-xs px-2.5 py-1 rounded-full border ${
           isExpired 
-            ? 'bg-red-950/60 border-red-800 text-red-400' 
+            ? 'bg-red-50 border-red-200 text-red-600' 
             : secondsRemaining < 30 
-              ? 'bg-amber-950/60 border-amber-800 text-amber-300' 
-              : 'bg-[#0B0E14] border-[#232B3B] text-slate-400'
+              ? 'bg-amber-50 border-amber-200 text-amber-600' 
+              : 'bg-slate-50 border-slate-200 text-slate-600'
         }`}>
           <Clock className="w-3.5 h-3.5" />
           <span>{isExpired ? 'Quote Expired' : `${secondsRemaining}s remaining`}</span>
@@ -48,63 +48,63 @@ export function ConfirmationModal({ proposal, onConfirm, onCancel, isExecuting }
       {/* Trade Parameter Cards */}
       <div className="space-y-2">
         {/* You Pay */}
-        <div className="bg-[#0B0E14] border border-[#232B3B] rounded-xl p-3.5 flex items-center justify-between">
+        <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 flex items-center justify-between">
           <div>
-            <span className="text-xs text-slate-400 block mb-1">You Pay</span>
-            <span className="text-xl font-bold text-white tracking-tight">
+            <span className="text-[11px] text-slate-400 block mb-0.5">You Pay</span>
+            <span className="text-lg font-bold text-slate-900 font-mono tracking-tight">
               {proposal.amountInFormatted}
             </span>
           </div>
-          <div className="flex items-center gap-2 bg-[#151A23] border border-[#232B3B] px-3 py-1.5 rounded-xl">
-            <div className="w-6 h-6 rounded-full bg-brand-500/20 text-brand-500 font-bold text-xs flex items-center justify-center">
+          <div className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-xs">
+            <div className="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 font-bold text-xs flex items-center justify-center">
               {proposal.tokenIn.symbol.slice(0, 1)}
             </div>
-            <span className="font-semibold text-sm">{proposal.tokenIn.symbol}</span>
+            <span className="font-semibold text-xs text-slate-900">{proposal.tokenIn.symbol}</span>
           </div>
         </div>
 
         {/* Arrow Divider */}
-        <div className="flex justify-center -my-1.5 relative z-10">
-          <div className="bg-[#151A23] border border-[#232B3B] p-1.5 rounded-full text-slate-400 shadow-md">
-            <ArrowDown className="w-4 h-4" />
+        <div className="flex justify-center -my-1 relative z-10">
+          <div className="bg-white border border-slate-200 p-1 rounded-full text-slate-400 shadow-xs">
+            <ArrowDown className="w-3.5 h-3.5" />
           </div>
         </div>
 
         {/* You Receive (Estimated) */}
-        <div className="bg-[#0B0E14] border border-[#232B3B] rounded-xl p-3.5 flex items-center justify-between">
+        <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 flex items-center justify-between">
           <div>
-            <span className="text-xs text-slate-400 block mb-1">Estimated Output</span>
-            <span className="text-xl font-bold text-emerald-400 tracking-tight">
+            <span className="text-[11px] text-slate-400 block mb-0.5">Estimated Output</span>
+            <span className="text-lg font-bold text-emerald-600 font-mono tracking-tight">
               {parseFloat(proposal.estimatedAmountOutFormatted).toFixed(6)}
             </span>
           </div>
-          <div className="flex items-center gap-2 bg-[#151A23] border border-[#232B3B] px-3 py-1.5 rounded-xl">
-            <div className="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 font-bold text-xs flex items-center justify-center">
+          <div className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-xs">
+            <div className="w-6 h-6 rounded-full bg-emerald-50 text-emerald-600 font-bold text-xs flex items-center justify-center">
               {proposal.tokenOut.symbol.slice(0, 1)}
             </div>
-            <span className="font-semibold text-sm">{proposal.tokenOut.symbol}</span>
+            <span className="font-semibold text-xs text-slate-900">{proposal.tokenOut.symbol}</span>
           </div>
         </div>
       </div>
 
       {/* Safety & Protocol Breakdown Details */}
-      <div className="mt-4 bg-[#0B0E14]/60 border border-[#232B3B]/60 rounded-xl p-3 space-y-2 text-xs">
-        <div className="flex items-center justify-between text-slate-400">
-          <span>Minimum Received (after {proposal.slippagePercent}% slippage):</span>
-          <span className="font-mono text-slate-200">{parseFloat(proposal.minAmountOutFormatted).toFixed(6)} {proposal.tokenOut.symbol}</span>
+      <div className="mt-3 bg-slate-50 rounded-xl p-3 space-y-1.5 text-xs text-slate-600 font-mono">
+        <div className="flex items-center justify-between">
+          <span className="font-sans text-slate-500">Min. Received (slippage {proposal.slippagePercent}%):</span>
+          <span className="text-slate-900">{parseFloat(proposal.minAmountOutFormatted).toFixed(6)} {proposal.tokenOut.symbol}</span>
         </div>
-        <div className="flex items-center justify-between text-slate-400">
-          <span className="flex items-center gap-1"><Fuel className="w-3.5 h-3.5" /> Estimated Gas Cost:</span>
-          <span className="font-mono text-slate-200">~{parseFloat(proposal.estimatedGasEth).toFixed(5)} ETH</span>
+        <div className="flex items-center justify-between">
+          <span className="font-sans text-slate-500 flex items-center gap-1"><Fuel className="w-3.5 h-3.5" /> Est. Gas Fee:</span>
+          <span className="text-slate-900">~{parseFloat(proposal.estimatedGasEth).toFixed(5)} ETH</span>
         </div>
-        <div className="flex items-center justify-between text-slate-400">
-          <span>Network / DEX Router:</span>
-          <span className="text-slate-200">Sepolia (Uniswap V2)</span>
+        <div className="flex items-center justify-between">
+          <span className="font-sans text-slate-500">Router / DEX:</span>
+          <span className="text-slate-900">Uniswap V2 (Sepolia)</span>
         </div>
         {proposal.priceImpactPercent > 0 && (
-          <div className="flex items-center justify-between text-slate-400">
-            <span>Price Impact:</span>
-            <span className={`font-mono font-medium ${isHighImpact ? 'text-amber-400' : 'text-slate-200'}`}>
+          <div className="flex items-center justify-between">
+            <span className="font-sans text-slate-500">Price Impact:</span>
+            <span className={`font-semibold ${isHighImpact ? 'text-amber-600' : 'text-slate-900'}`}>
               {proposal.priceImpactPercent}%
             </span>
           </div>
@@ -113,39 +113,39 @@ export function ConfirmationModal({ proposal, onConfirm, onCancel, isExecuting }
 
       {/* Warnings & Approvals */}
       {proposal.requiresApproval && (
-        <div className="mt-3 flex items-center gap-2 bg-indigo-950/30 border border-indigo-700/40 rounded-xl p-2.5 text-xs text-indigo-300">
-          <ShieldCheck className="w-4 h-4 text-indigo-400 shrink-0" />
+        <div className="mt-2.5 flex items-center gap-2 bg-indigo-50 border border-indigo-100 rounded-xl p-2.5 text-xs text-indigo-700 font-sans">
+          <ShieldCheck className="w-4 h-4 text-indigo-600 shrink-0" />
           <span>One-time ERC-20 approval will be automatically submitted prior to the swap.</span>
         </div>
       )}
 
       {isHighImpact && (
-        <div className="mt-3 bg-amber-950/30 border border-amber-600/40 rounded-xl p-3 text-xs text-amber-200">
-          <div className="flex items-start gap-2 mb-2">
-            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-            <span>High Price Impact Warning: This swap may cause substantial slippage.</span>
+        <div className="mt-2.5 bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 font-sans">
+          <div className="flex items-start gap-2 mb-1.5">
+            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <span>High Price Impact: This swap may cause substantial slippage.</span>
           </div>
-          <label className="flex items-center gap-2 cursor-pointer select-none mt-1">
+          <label className="flex items-center gap-2 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={hasAcknowledgedImpact}
               onChange={(e) => setHasAcknowledgedImpact(e.target.checked)}
-              className="rounded border-amber-600 bg-amber-950/50 text-amber-500 focus:ring-0 focus:ring-offset-0"
+              className="rounded border-amber-300 text-amber-600 focus:ring-0"
             />
-            <span className="font-medium text-amber-300">I understand and want to proceed anyway</span>
+            <span className="font-medium text-amber-900">I understand and want to proceed</span>
           </label>
         </div>
       )}
 
       {/* Action Buttons */}
-      <div className="mt-5 flex items-center gap-3">
+      <div className="mt-4 flex items-center gap-2.5">
         <button
           type="button"
           onClick={onCancel}
           disabled={isExecuting}
-          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-[#232B3B] hover:bg-[#232B3B]/60 text-slate-300 text-sm font-medium transition-colors disabled:opacity-50"
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-medium transition-colors disabled:opacity-50"
         >
-          <X className="w-4 h-4" />
+          <X className="w-3.5 h-3.5" />
           <span>Cancel</span>
         </button>
 
@@ -153,18 +153,18 @@ export function ConfirmationModal({ proposal, onConfirm, onCancel, isExecuting }
           type="button"
           onClick={() => onConfirm(proposal.proposalId)}
           disabled={!canConfirm}
-          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-black text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-brand-500/20"
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
         >
           {isExecuting ? (
             <>
-              <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+              <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               <span>Executing Swap...</span>
             </>
           ) : isExpired ? (
             <span>Expired — Re-request</span>
           ) : (
             <>
-              <Check className="w-4 h-4" />
+              <Check className="w-3.5 h-3.5" />
               <span>Confirm & Swap</span>
             </>
           )}

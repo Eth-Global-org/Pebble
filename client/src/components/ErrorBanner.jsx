@@ -8,30 +8,30 @@ export function ErrorBanner({ error, onDismiss, onRetry }) {
   const isRecoverable = error.recoverable !== false;
 
   return (
-    <div className="bg-red-950/40 border border-red-500/30 rounded-xl p-4 my-3 text-red-200 animate-in fade-in duration-200 shadow-lg">
+    <div className="bg-rose-50 border border-rose-200 rounded-xl p-3.5 my-2.5 text-rose-900 shadow-xs animate-in fade-in duration-150">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <div className="p-2 bg-red-500/20 text-red-400 rounded-lg shrink-0 mt-0.5">
-            <AlertCircle className="w-5 h-5" />
+        <div className="flex items-start gap-2.5">
+          <div className="p-1 bg-rose-100 text-rose-600 rounded-lg shrink-0 mt-0.5">
+            <AlertCircle className="w-4 h-4" />
           </div>
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="font-semibold text-red-300 text-sm">Validation Error</span>
+              <span className="font-semibold text-xs text-rose-900">Validation Notice</span>
               {error.code && (
-                <span className="font-mono text-xs px-2 py-0.5 rounded bg-red-900/60 border border-red-700/40 text-red-300">
+                <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-rose-100 text-rose-800 border border-rose-300">
                   {error.code}
                 </span>
               )}
             </div>
-            <p className="text-sm text-red-200/90 leading-relaxed">{error.message}</p>
+            <p className="text-xs text-rose-800 leading-relaxed">{error.message}</p>
 
             {isGasError && (
-              <div className="mt-3">
+              <div className="mt-2.5">
                 <a
                   href="https://sepoliafaucet.com"
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-400 hover:text-emerald-300 bg-emerald-950/40 border border-emerald-700/40 px-3 py-1.5 rounded-lg transition-colors"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-white border border-indigo-200 px-2.5 py-1 rounded-lg hover:bg-indigo-50 transition-colors shadow-xs"
                 >
                   <span>Get Free Sepolia Testnet ETH</span>
                   <ExternalLink className="w-3.5 h-3.5" />
@@ -46,18 +46,18 @@ export function ErrorBanner({ error, onDismiss, onRetry }) {
             <button
               onClick={onRetry}
               title="Retry"
-              className="p-1.5 text-red-300 hover:text-white hover:bg-red-900/40 rounded-lg transition-colors"
+              className="p-1 text-rose-400 hover:text-rose-700 hover:bg-rose-100 rounded transition-colors"
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="w-3.5 h-3.5" />
             </button>
           )}
           {onDismiss && (
             <button
               onClick={onDismiss}
               title="Dismiss"
-              className="p-1.5 text-red-300 hover:text-white hover:bg-red-900/40 rounded-lg transition-colors"
+              className="p-1 text-rose-400 hover:text-rose-700 hover:bg-rose-100 rounded transition-colors"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
