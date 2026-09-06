@@ -47,13 +47,13 @@ export function ChatInterface({
   };
 
   return (
-    <div className="flex flex-col h-[580px] bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+    <div className="flex flex-col h-[590px] bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
       {/* Header bar of Chat terminal */}
-      <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
-        <div className="flex items-center gap-2">
+      <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-white">
+        <div className="flex items-center gap-2.5">
           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-xs font-semibold text-slate-800">NLP Trading Terminal</span>
-          <span className="text-[10px] font-mono text-slate-400">Gemini 3 Flash</span>
+          <span className="text-xs font-bold text-slate-800 tracking-tight">Trading Terminal</span>
+          <span className="text-[10px] font-mono text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-100">Gemini 3 Flash</span>
         </div>
 
         {messages.length > 0 && (
@@ -61,10 +61,10 @@ export function ChatInterface({
             type="button"
             onClick={onClearChat}
             title="Clear Chat History"
-            className="text-xs text-slate-400 hover:text-slate-700 flex items-center gap-1 transition-colors"
+            className="text-xs text-slate-400 hover:text-slate-700 flex items-center gap-1 transition-colors px-2 py-1 rounded-lg hover:bg-slate-50"
           >
             <Trash2 className="w-3.5 h-3.5" />
-            <span>Reset</span>
+            <span>Clear</span>
           </button>
         )}
       </div>
@@ -111,10 +111,10 @@ export function ChatInterface({
           >
             {/* Avatar */}
             <div
-              className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs font-semibold ${
+              className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 text-xs font-semibold ${
                 msg.role === 'user'
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-slate-100 text-slate-600 border border-slate-200'
+                  ? 'bg-[#242b58] text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-600 border border-slate-200/60'
               }`}
             >
               {msg.role === 'user' ? <User className="w-3.5 h-3.5" /> : <Bot className="w-3.5 h-3.5" />}
@@ -124,10 +124,10 @@ export function ChatInterface({
             <div className="max-w-[85%] sm:max-w-[80%] space-y-2">
               {msg.text && (
                 <div
-                  className={`p-3 rounded-xl text-xs leading-relaxed whitespace-pre-wrap ${
+                  className={`p-3.5 rounded-2xl text-xs leading-relaxed whitespace-pre-wrap ${
                     msg.role === 'user'
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-slate-50 text-slate-800 border border-slate-200'
+                      ? 'bg-[#242b58] text-white shadow-xs'
+                      : 'bg-slate-50 text-slate-800 border border-slate-100'
                   }`}
                 >
                   {msg.text}
@@ -154,7 +154,7 @@ export function ChatInterface({
 
               {/* Cancelled Notice */}
               {msg.isCancelled && (
-                <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs text-slate-500 italic">
+                <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 text-xs text-slate-500 italic">
                   Trade cancelled. No on-chain transaction was submitted.
                 </div>
               )}
@@ -178,10 +178,10 @@ export function ChatInterface({
         {/* Loading Bounce */}
         {isLoading && (
           <div className="flex items-start gap-2.5 animate-in fade-in">
-            <div className="w-7 h-7 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
+            <div className="w-7 h-7 rounded-xl bg-slate-100 border border-slate-200/60 flex items-center justify-center shrink-0">
               <Bot className="w-3.5 h-3.5 text-indigo-600" />
             </div>
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center gap-1.5">
+            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-3.5 flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-bounce" />
               <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-bounce [animation-delay:0.2s]" />
               <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-bounce [animation-delay:0.4s]" />
@@ -194,7 +194,7 @@ export function ChatInterface({
       </div>
 
       {/* Input Form Footer */}
-      <div className="p-3 bg-slate-50 border-t border-slate-200">
+      <div className="p-3.5 bg-white border-t border-slate-100">
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
           <input
             ref={inputRef}
@@ -203,13 +203,13 @@ export function ChatInterface({
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type 'Swap 0.05 ETH for USDC' or ask 'What is my current balance?'..."
             disabled={isLoading || isExecuting}
-            className="flex-1 bg-white border border-slate-200 focus:border-indigo-500 rounded-lg px-3.5 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none transition-colors disabled:opacity-50"
+            className="flex-1 bg-slate-50 border border-slate-200/70 focus:border-slate-300 focus:bg-white rounded-xl px-4 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none transition-colors disabled:opacity-50"
           />
 
           <button
             type="submit"
             disabled={!input.trim() || isLoading || isExecuting}
-            className="p-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:hover:bg-indigo-600 text-white rounded-lg transition-all shadow-xs shrink-0"
+            className="p-2.5 bg-[#242b58] hover:bg-[#191e40] disabled:opacity-40 disabled:hover:bg-[#242b58] text-white rounded-xl transition-all shadow-xs shrink-0"
           >
             <Send className="w-4 h-4" />
           </button>

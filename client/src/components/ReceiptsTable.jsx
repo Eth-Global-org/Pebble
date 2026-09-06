@@ -16,17 +16,17 @@ export function ReceiptsTable({ receipts = [] }) {
   });
 
   return (
-    <div className="bg-white border border-slate-200/90 rounded-xl shadow-sm overflow-hidden text-xs">
+    <div className="bg-white border border-slate-100 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.04)] overflow-hidden text-xs">
       {/* Table Toolbar */}
-      <div className="p-3 border-b border-slate-200/80 flex items-center justify-between gap-3 bg-white">
+      <div className="p-3.5 border-b border-slate-100 flex items-center justify-between gap-3 bg-white">
         <div className="relative w-72">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Search receipts by token, ID, or tx..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-8 pr-3 py-1 bg-slate-50 border border-slate-200 rounded-md text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 transition-colors"
+            className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200/70 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:bg-white transition-colors"
           />
         </div>
 
@@ -65,7 +65,7 @@ export function ReceiptsTable({ receipts = [] }) {
             <tbody className="divide-y divide-slate-100 font-mono text-[11px] text-slate-700">
               {filtered.map((r) => (
                 <tr key={r.receiptId} className="hover:bg-slate-50/70 transition-colors">
-                  <td className="py-2.5 px-4 font-bold text-indigo-600">
+                  <td className="py-2.5 px-4 font-bold text-[#242b58]">
                     {r.receiptId}
                   </td>
                   <td className="py-2.5 px-4 font-sans font-medium flex items-center gap-1 text-slate-900">
@@ -104,10 +104,16 @@ export function ReceiptsTable({ receipts = [] }) {
                     {new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </td>
                   <td className="py-2.5 px-4 text-right font-sans">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      <ShieldCheck className="w-3 h-3" />
-                      <span>Confirmed</span>
-                    </span>
+                    {r.status === 'Confirmed' ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-slate-200/60">
+                        <ShieldCheck className="w-3 h-3" />
+                        <span>Confirmed</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-rose-50 text-rose-700 border border-slate-200/60" title={r.errorMessage || ''}>
+                        <span>Failed</span>
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}

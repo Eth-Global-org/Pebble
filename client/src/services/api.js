@@ -60,6 +60,19 @@ export async function getSessionReceipts(sessionId) {
   }
 }
 
+export async function getRecordedTransactions(sessionId = null, limit = 100) {
+  try {
+    const params = new URLSearchParams();
+    if (sessionId) params.append('sessionId', sessionId);
+    if (limit) params.append('limit', String(limit));
+    const query = params.toString() ? `?${params.toString()}` : '';
+    const data = await safeJsonFetch(`/api/transactions${query}`);
+    return data.transactions || [];
+  } catch {
+    return [];
+  }
+}
+
 export async function clearSession(sessionId) {
   try {
     return await safeJsonFetch(`/api/session/${encodeURIComponent(sessionId)}/clear`, {

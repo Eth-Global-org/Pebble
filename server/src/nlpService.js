@@ -54,7 +54,7 @@ export async function parseUserIntent(prompt, sessionId = null) {
 
   // Handle balance inquiries directly with live on-chain balances
   const lower = cleanPrompt.toLowerCase();
-  if (lower.includes('balence') || lower.includes('balance') || lower.includes('my funds') || lower.includes('my holdings') || lower.includes('how much eth do i have') || lower.includes('what do i have')) {
+  if (lower.includes('address') || lower.includes('my wallet') || lower.includes('balence') || lower.includes('balance') || lower.includes('my funds') || lower.includes('my holdings') || lower.includes('how much eth do i have') || lower.includes('what do i have')) {
     try {
       const walletInfo = await getWalletBalances();
       const balanceLines = Object.values(walletInfo.balances)

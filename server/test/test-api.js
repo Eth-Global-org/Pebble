@@ -5,13 +5,16 @@ import http from 'http';
 import { startServer } from '../src/server.js';
 import { CONFIG } from '../src/config.js';
 
+const TEST_PORT = 5099;
+let testServer = null;
+
 function makeRequest(path, method = 'GET', body = null) {
   return new Promise((resolve, reject) => {
     const payload = body ? JSON.stringify(body) : null;
     const req = http.request(
       {
         hostname: '127.0.0.1',
-        port: CONFIG.port,
+        port: TEST_PORT,
         path,
         method,
         headers: {
@@ -131,7 +134,17 @@ async function runApiTests() {
     assert.strictEqual(res.data.receipts.length, 1);
   });
 
-  // 8. Poll status endpoint
+  // 8. Get SQLite transactions endpoint
+  await test('GET /api/transactions retrieves recorded SQLite transactions', async () => {
+    const res = await makeRequest(`/api/transactions?sessionId=${testSessionId}`);
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.data.success, true);
+    assert.ok(Array.isArray(res.data.transactions));
+    assert.ok(res.data.transactions.length >= 1);
+    assert.strictEqual(res.data.transactions[0].sessionId, testSessionId);
+  });
+
+  // 9. Poll status endpoint
   await test('GET /api/tx-status/:proposalId retrieves execution status', async () => {
     const res = await makeRequest(`/api/tx-status/${createdProposalId}`);
     assert.strictEqual(res.status, 200);
@@ -139,7 +152,7 @@ async function runApiTests() {
     assert.strictEqual(res.data.status.status, 'confirmed');
   });
 
-  // 9. Replay execution fails
+  // 10. Replay execution fails
   await test('POST /api/execute-trade with replayed proposal fails', async () => {
     const res = await makeRequest('/api/execute-trade', 'POST', {
       proposalId: createdProposalId,
@@ -151,6 +164,9 @@ async function runApiTests() {
   });
 
   console.log(`Results: ${passed}/${total} tests passed.`);
+  if (testServer) {
+    testServer.close();
+  }
   if (passed !== total) {
     process.exit(1);
   }
@@ -159,13 +175,8 @@ async function runApiTests() {
 
 function ensureServer() {
   return new Promise((resolve) => {
-    const req = http.get({ hostname: '127.0.0.1', port: CONFIG.port, path: '/api/health' }, () => {
-      resolve();
-    });
-    req.on('error', () => {
-      startServer();
-      setTimeout(resolve, 500);
-    });
+    testServer = startServer(TEST_PORT);
+    setTimeout(resolve, 300);
   });
 }
 

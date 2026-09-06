@@ -3,6 +3,8 @@ import { CONFIG } from './config.js';
 import { ApiError, ErrorCode } from './errors.js';
 import { getWallet, getRouterContract, getErc20Contract, getTokenBalance, getTokenAllowance } from './chain.js';
 import { recordSessionTrade } from './nlpService.js';
+import { recordTransaction } from './db.js';
+import { logger, LogCategory } from './logger.js';
 
 // In-memory proposal and transaction status stores
 const proposalStore = new Map();
@@ -10,6 +12,7 @@ const txStatusStore = new Map();
 
 export function storeProposal(proposal) {
   proposalStore.set(proposal.proposalId, proposal);
+  logger.info(LogCategory.SIMULATION, `Stored proposal: ${proposal.proposalId.slice(0, 8)} (expires in ${CONFIG.proposalTtlSeconds}s)`);
   // Auto cleanup after expiration + buffer
   setTimeout(() => {
     proposalStore.delete(proposal.proposalId);
@@ -185,6 +188,11 @@ export async function executeTrade(proposalId, sessionId = null) {
       if (sessionId) {
         recordSessionTrade(sessionId, tradeReceipt);
       }
+
+      // Record transaction to SQLite database
+      recordTransaction(tradeReceipt, sessionId);
+
+      logger.info(LogCategory.EXECUTION, `Trade confirmed: ${tradeReceipt.amountIn} ${tradeReceipt.tokenIn} -> ${tradeReceipt.amountOut} ${tradeReceipt.tokenOut} | Receipt: ${tradeReceipt.receiptId}`);
     }
 
     // Once executed, delete proposal to prevent replay
@@ -193,6 +201,29 @@ export async function executeTrade(proposalId, sessionId = null) {
   } catch (error) {
     executionRecord.status = 'failed';
     executionRecord.errorMessage = error.message;
+
+    // Record failed transaction attempt to SQLite
+    try {
+      recordTransaction({
+        receiptId: `REC-${Date.now().toString(36).toUpperCase()}-FAIL`,
+        proposalId,
+        tokenIn: proposal?.tokenIn?.symbol || 'UNKNOWN',
+        tokenOut: proposal?.tokenOut?.symbol || 'UNKNOWN',
+        amountIn: proposal?.amountInFormatted || '0',
+        amountOut: '0',
+        rate: 'N/A',
+        txHash: executionRecord?.txHash || null,
+        explorerUrl: executionRecord?.explorerUrl || null,
+        estimatedGasEth: proposal?.estimatedGasEth || '0',
+        network: 'Sepolia Testnet',
+        status: 'Failed',
+        errorMessage: error.message,
+        timestamp: Date.now()
+      }, sessionId);
+    } catch {
+      // Ignore DB recording failure during error handling
+    }
+
     throw error;
   }
 }

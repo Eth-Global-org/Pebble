@@ -19,33 +19,27 @@ export function TransactionStatus({ execution, onNewTrade }) {
   };
 
   return (
-    <div className={`rounded-xl border p-4 my-3 text-slate-800 shadow-sm animate-in fade-in duration-150 ${
-      isConfirmed 
-        ? 'bg-emerald-50/40 border-emerald-200' 
-        : isFailed 
-          ? 'bg-rose-50/40 border-rose-200' 
-          : 'bg-white border-slate-200'
-    }`}>
+    <div className="bg-white rounded-2xl border border-slate-100 p-4 my-3 text-slate-800 shadow-[0_4px_16px_rgba(0,0,0,0.04)] animate-in fade-in duration-150">
       {/* Title & Status Indicator */}
       <div className="flex items-center justify-between border-b border-slate-100 pb-2.5 mb-3">
         <div className="flex items-center gap-2">
-          {isPending && <Loader2 className="w-4 h-4 text-indigo-600 animate-spin" />}
+          {isPending && <Loader2 className="w-4 h-4 text-[#242b58] animate-spin" />}
           {isConfirmed && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
           {isFailed && <XCircle className="w-4 h-4 text-rose-600" />}
           
-          <h3 className="font-semibold text-xs text-slate-900">
+          <h3 className="font-bold text-xs text-slate-900">
             {isPending && 'Submitting On-Chain Swap...'}
             {isConfirmed && 'Transaction Confirmed'}
             {isFailed && 'Transaction Failed'}
           </h3>
         </div>
 
-        <span className={`text-[11px] font-mono font-medium px-2 py-0.5 rounded-full uppercase border ${
+        <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full uppercase border border-slate-200/60 ${
           isConfirmed 
-            ? 'bg-emerald-50 border-emerald-200 text-emerald-700' 
+            ? 'bg-emerald-50 text-emerald-700' 
             : isFailed 
-              ? 'bg-rose-50 border-rose-200 text-rose-700' 
-              : 'bg-indigo-50 border-indigo-200 text-indigo-700 animate-pulse'
+              ? 'bg-rose-50 text-rose-700' 
+              : 'bg-slate-100 text-slate-700 animate-pulse'
         }`}>
           {execution.status}
         </span>
@@ -54,44 +48,44 @@ export function TransactionStatus({ execution, onNewTrade }) {
       {/* Execution Pipeline Steps */}
       <div className="grid grid-cols-3 gap-2 my-3 text-[11px]">
         {/* Step 1 */}
-        <div className={`p-2 rounded-lg border text-center ${
+        <div className={`p-2 rounded-xl border border-slate-100 text-center ${
           execution.approvalTxHash || isConfirmed || execution.status === 'swapping'
-            ? 'bg-emerald-50 border-emerald-200 text-emerald-800 font-medium'
+            ? 'bg-slate-50 text-slate-800 font-semibold'
             : execution.status === 'approving'
-              ? 'bg-indigo-50 border-indigo-200 text-indigo-800 font-medium'
-              : 'bg-slate-50 border-slate-200 text-slate-400'
+              ? 'bg-[#242b58]/5 text-[#242b58] font-bold'
+              : 'bg-slate-50/60 text-slate-400'
         }`}>
           <div>1. Approval</div>
-          <span className="text-[10px] opacity-75">
+          <span className="text-[10px] font-normal text-slate-500">
             {execution.approvalTxHash ? 'Approved' : 'Done / Not Needed'}
           </span>
         </div>
 
         {/* Step 2 */}
-        <div className={`p-2 rounded-lg border text-center ${
+        <div className={`p-2 rounded-xl border border-slate-100 text-center ${
           isConfirmed
-            ? 'bg-emerald-50 border-emerald-200 text-emerald-800 font-medium'
+            ? 'bg-slate-50 text-slate-800 font-semibold'
             : execution.status === 'swapping'
-              ? 'bg-indigo-50 border-indigo-200 text-indigo-800 font-medium'
-              : 'bg-slate-50 border-slate-200 text-slate-400'
+              ? 'bg-[#242b58]/5 text-[#242b58] font-bold'
+              : 'bg-slate-50/60 text-slate-400'
         }`}>
           <div>2. Router Swap</div>
-          <span className="text-[10px] opacity-75">
-            {isConfirmed ? 'Executed' : execution.status === 'swapping' ? 'Broadcasting' : 'Pending'}
+          <span className="text-[10px] font-normal text-slate-500">
+            {isConfirmed ? 'Executed' : isPending ? 'Submitting...' : 'Pending'}
           </span>
         </div>
 
         {/* Step 3 */}
-        <div className={`p-2 rounded-lg border text-center ${
+        <div className={`p-2 rounded-xl border border-slate-100 text-center ${
           isConfirmed
-            ? 'bg-emerald-50 border-emerald-200 text-emerald-800 font-medium'
+            ? 'bg-emerald-50/60 text-emerald-800 font-semibold'
             : isFailed
-              ? 'bg-rose-50 border-rose-200 text-rose-800 font-medium'
-              : 'bg-slate-50 border-slate-200 text-slate-400'
+              ? 'bg-rose-50/60 text-rose-800 font-semibold'
+              : 'bg-slate-50/60 text-slate-400'
         }`}>
-          <div>3. Sepolia Block</div>
-          <span className="text-[10px] opacity-75">
-            {isConfirmed ? '1 Block Confirmed' : isFailed ? 'Reverted' : 'Awaiting'}
+          <div>3. Settlement</div>
+          <span className="text-[10px] font-normal text-slate-500">
+            {isConfirmed ? '1 Block Confirmed' : isFailed ? 'Reverted' : 'Awaiting receipt'}
           </span>
         </div>
       </div>
@@ -133,7 +127,7 @@ export function TransactionStatus({ execution, onNewTrade }) {
 
       {/* Failure message if any */}
       {isFailed && execution.errorMessage && (
-        <div className="mt-2.5 p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800 font-mono">
+        <div className="mt-2.5 p-2.5 bg-rose-50/70 border border-slate-200/60 rounded-lg text-xs text-rose-800 font-mono">
           {execution.errorMessage}
         </div>
       )}

@@ -3,6 +3,7 @@ import { parseUserIntent, getSessionTrades } from '../src/nlpService.js';
 import { validateTradeIntent } from '../src/validationService.js';
 import { simulateTrade } from '../src/simulationService.js';
 import { storeProposal, executeTrade } from '../src/executionService.js';
+import { getTransactionByReceiptId } from '../src/db.js';
 
 process.env.NODE_ENV = 'test';
 
@@ -41,11 +42,18 @@ async function runSessionTests() {
   assert.ok(parseFloat(execution.receipt.amountOut) > 0);
   console.log('  PASS: On-chain trade receipt created:', execution.receipt.receiptId);
 
-  // Test 4: Verify session trade memory
+  // Test 4: Verify session trade memory & SQLite database persistence
   const sessionTrades = getSessionTrades(sessionId);
   assert.strictEqual(sessionTrades.length, 1);
   assert.strictEqual(sessionTrades[0].receiptId, execution.receipt.receiptId);
-  console.log('  PASS: Session trade history records match');
+  
+  const dbTx = getTransactionByReceiptId(execution.receipt.receiptId);
+  assert.ok(dbTx, 'Transaction should exist in SQLite database');
+  assert.strictEqual(dbTx.receiptId, execution.receipt.receiptId);
+  assert.strictEqual(dbTx.tokenIn, 'ETH');
+  assert.strictEqual(dbTx.tokenOut, 'USDC');
+  assert.strictEqual(dbTx.status, 'Confirmed');
+  console.log('  PASS: SQLite transaction persistence verified');
 
   // Test 5: Turn 3 - Inquiry about past trade
   console.log('  Turn 3: User asks about past trade...');

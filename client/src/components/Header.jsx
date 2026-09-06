@@ -24,7 +24,8 @@ export function Header({ walletInfo, onSearchSelect, onRefreshWallet, activeTab 
   const tabLabels = {
     terminal: 'Trading Terminal',
     receipts: 'Trade Receipts',
-    tokens: 'Token Balances'
+    tokens: 'Token Balances',
+    logs: 'System Logs'
   };
 
   return (

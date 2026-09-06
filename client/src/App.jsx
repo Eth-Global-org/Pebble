@@ -191,7 +191,7 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex font-sans text-slate-900">
-      {/* Left Navigation Sidebar matching screenshot */}
+      {/* Left Navigation Sidebar */}
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -216,7 +216,11 @@ export function App() {
           <div>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
               <div>
-                <h2 className="text-xl font-bold text-slate-900 tracking-tight">Trading Terminal</h2>
+                <h2 className="text-xl font-bold text-slate-900 tracking-tight">
+                  {activeTab === 'terminal' && 'Trading Terminal'}
+                  {activeTab === 'receipts' && 'Trade Receipts'}
+                  {activeTab === 'tokens' && 'Token Reserves'}
+                </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
                   Natural language Uniswap V2 execution with automated safety rails
                 </p>
@@ -238,6 +242,7 @@ export function App() {
             {/* Real Navigation Tabs: Terminal | Trade Receipts | Token Balances */}
             <div className="flex items-center gap-6 border-b border-slate-200 text-xs font-medium text-slate-500 mb-4">
               <button
+                type="button"
                 onClick={() => setActiveTab('terminal')}
                 className={`pb-2 transition-colors relative ${
                   activeTab === 'terminal'
@@ -249,6 +254,7 @@ export function App() {
               </button>
 
               <button
+                type="button"
                 onClick={() => setActiveTab('receipts')}
                 className={`pb-2 transition-colors relative flex items-center gap-1.5 ${
                   activeTab === 'receipts'
@@ -265,6 +271,7 @@ export function App() {
               </button>
 
               <button
+                type="button"
                 onClick={() => setActiveTab('tokens')}
                 className={`pb-2 transition-colors relative ${
                   activeTab === 'tokens'
@@ -357,33 +364,34 @@ export function App() {
                   return (
                     <div
                       key={token.symbol}
-                      className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow"
+                      className="bg-white border border-slate-100 rounded-2xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.04)] hover:shadow-md transition-shadow flex flex-col justify-between"
                     >
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-indigo-50 border border-indigo-100 font-bold text-xs flex items-center justify-center text-indigo-700">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-xl bg-slate-100 font-bold text-xs flex items-center justify-center text-slate-800">
                             {token.symbol.slice(0, 3)}
                           </div>
                           <div>
-                            <h4 className="font-semibold text-xs text-slate-900">{token.name}</h4>
+                            <h4 className="font-bold text-xs text-slate-900">{token.name}</h4>
                             <span className="font-mono text-[10px] text-slate-400">{token.symbol}</span>
                           </div>
                         </div>
-                        <span className="text-xs font-mono font-semibold text-slate-900">
+                        <span className="text-sm font-mono font-bold text-slate-900">
                           {parseFloat(balanceFormatted).toFixed(4)}
                         </span>
                       </div>
 
                       <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                        <span className="text-slate-400 font-mono text-[11px]">Decimals: {token.decimals}</span>
+                        <span className="text-slate-400 font-mono text-[10px]">Decimals: {token.decimals}</span>
                         <button
+                          type="button"
                           onClick={() => {
                             setActiveTab('terminal');
                             handleSendMessage(`Swap 0.05 ETH for ${token.symbol}`);
                           }}
-                          className="text-indigo-600 hover:text-indigo-800 font-medium"
+                          className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#242b58] text-white hover:bg-[#181d2d] transition-colors"
                         >
-                          Quick Swap →
+                          Swap →
                         </button>
                       </div>
                     </div>

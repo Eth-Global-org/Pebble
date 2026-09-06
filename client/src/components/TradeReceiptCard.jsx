@@ -22,27 +22,27 @@ export function TradeReceiptCard({ receipt }) {
   });
 
   return (
-    <div className="bg-white border border-emerald-200 rounded-xl p-4 shadow-sm my-3 text-slate-800 animate-in fade-in duration-150">
+    <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-[0_4px_16px_rgba(0,0,0,0.04)] my-3 text-slate-800 animate-in fade-in duration-150">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-slate-100 pb-2.5 mb-3">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-200">
-            <Receipt className="w-4 h-4" />
+          <div className="p-1.5 bg-slate-100 text-slate-700 rounded-xl">
+            <Receipt className="w-4 h-4 text-emerald-600" />
           </div>
           <div>
-            <h4 className="font-semibold text-xs text-slate-900">Settled Trade Receipt</h4>
+            <h4 className="font-bold text-xs text-slate-900">Settled Trade Receipt</h4>
             <span className="font-mono text-[10px] text-slate-400">{receipt.receiptId}</span>
           </div>
         </div>
 
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-          <ShieldCheck className="w-3 h-3" />
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-slate-200/60">
+          <ShieldCheck className="w-3 h-3 text-emerald-600" />
           <span>Settled</span>
         </span>
       </div>
 
       {/* Main Trade Details */}
-      <div className="bg-slate-50 border border-slate-200/80 rounded-lg p-3 space-y-2">
+      <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 space-y-2">
         <div className="flex items-center justify-between">
           <div>
             <span className="text-[10px] uppercase font-medium text-slate-400 block">Sold</span>

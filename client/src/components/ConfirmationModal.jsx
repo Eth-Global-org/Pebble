@@ -26,19 +26,19 @@ export function ConfirmationModal({ proposal, onConfirm, onCancel, isExecuting }
   const canConfirm = !isExpired && !isExecuting && (!isHighImpact || hasAcknowledgedImpact);
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-lg my-3 text-slate-900 animate-in fade-in duration-150">
+    <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.06)] my-3 text-slate-900 animate-in fade-in duration-150">
       {/* Header & Expiry Countdown */}
       <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
         <div className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-pulse" />
-          <h3 className="font-semibold text-sm text-slate-900">Trade Confirmation</h3>
+          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <h3 className="font-bold text-sm text-slate-900 tracking-tight">Trade Proposal</h3>
         </div>
         <div className={`flex items-center gap-1.5 font-mono text-xs px-2.5 py-1 rounded-full border ${
           isExpired 
-            ? 'bg-red-50 border-red-200 text-red-600' 
+            ? 'bg-red-50 border-slate-200/60 text-red-600' 
             : secondsRemaining < 30 
-              ? 'bg-amber-50 border-amber-200 text-amber-600' 
-              : 'bg-slate-50 border-slate-200 text-slate-600'
+              ? 'bg-amber-50 border-slate-200/60 text-amber-700' 
+              : 'bg-slate-50 border-slate-200/60 text-slate-600'
         }`}>
           <Clock className="w-3.5 h-3.5" />
           <span>{isExpired ? 'Quote Expired' : `${secondsRemaining}s remaining`}</span>
@@ -48,41 +48,41 @@ export function ConfirmationModal({ proposal, onConfirm, onCancel, isExecuting }
       {/* Trade Parameter Cards */}
       <div className="space-y-2">
         {/* You Pay */}
-        <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 flex items-center justify-between">
+        <div className="bg-slate-50/80 border border-slate-100 rounded-xl p-3 flex items-center justify-between">
           <div>
-            <span className="text-[11px] text-slate-400 block mb-0.5">You Pay</span>
-            <span className="text-lg font-bold text-slate-900 font-mono tracking-tight">
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-0.5">You Pay</span>
+            <span className="text-lg font-extrabold text-slate-900 font-mono tracking-tight">
               {proposal.amountInFormatted}
             </span>
           </div>
-          <div className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-xs">
-            <div className="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 font-bold text-xs flex items-center justify-center">
+          <div className="flex items-center gap-2 bg-white border border-slate-100 px-3 py-1.5 rounded-xl shadow-xs">
+            <div className="w-6 h-6 rounded-full bg-[#242b58] text-white font-bold text-xs flex items-center justify-center">
               {proposal.tokenIn.symbol.slice(0, 1)}
             </div>
-            <span className="font-semibold text-xs text-slate-900">{proposal.tokenIn.symbol}</span>
+            <span className="font-bold text-xs text-slate-900">{proposal.tokenIn.symbol}</span>
           </div>
         </div>
 
         {/* Arrow Divider */}
         <div className="flex justify-center -my-1 relative z-10">
-          <div className="bg-white border border-slate-200 p-1 rounded-full text-slate-400 shadow-xs">
+          <div className="bg-white border border-slate-100 p-1 rounded-full text-slate-400 shadow-xs">
             <ArrowDown className="w-3.5 h-3.5" />
           </div>
         </div>
 
         {/* You Receive (Estimated) */}
-        <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 flex items-center justify-between">
+        <div className="bg-slate-50/80 border border-slate-100 rounded-xl p-3 flex items-center justify-between">
           <div>
-            <span className="text-[11px] text-slate-400 block mb-0.5">Estimated Output</span>
-            <span className="text-lg font-bold text-emerald-600 font-mono tracking-tight">
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-0.5">Estimated Output</span>
+            <span className="text-lg font-extrabold text-emerald-600 font-mono tracking-tight">
               {parseFloat(proposal.estimatedAmountOutFormatted).toFixed(6)}
             </span>
           </div>
-          <div className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-xs">
-            <div className="w-6 h-6 rounded-full bg-emerald-50 text-emerald-600 font-bold text-xs flex items-center justify-center">
+          <div className="flex items-center gap-2 bg-white border border-slate-100 px-3 py-1.5 rounded-xl shadow-xs">
+            <div className="w-6 h-6 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center">
               {proposal.tokenOut.symbol.slice(0, 1)}
             </div>
-            <span className="font-semibold text-xs text-slate-900">{proposal.tokenOut.symbol}</span>
+            <span className="font-bold text-xs text-slate-900">{proposal.tokenOut.symbol}</span>
           </div>
         </div>
       </div>
@@ -120,7 +120,7 @@ export function ConfirmationModal({ proposal, onConfirm, onCancel, isExecuting }
       )}
 
       {isHighImpact && (
-        <div className="mt-2.5 bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 font-sans">
+        <div className="mt-2.5 bg-amber-50/80 border border-slate-200/60 rounded-xl p-3 text-xs text-amber-800 font-sans">
           <div className="flex items-start gap-2 mb-1.5">
             <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
             <span>High Price Impact: This swap may cause substantial slippage.</span>
@@ -143,7 +143,7 @@ export function ConfirmationModal({ proposal, onConfirm, onCancel, isExecuting }
           type="button"
           onClick={onCancel}
           disabled={isExecuting}
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-medium transition-colors disabled:opacity-50"
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-slate-200/80 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors disabled:opacity-50"
         >
           <X className="w-3.5 h-3.5" />
           <span>Cancel</span>
@@ -153,7 +153,7 @@ export function ConfirmationModal({ proposal, onConfirm, onCancel, isExecuting }
           type="button"
           onClick={() => onConfirm(proposal.proposalId)}
           disabled={!canConfirm}
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-[#242b58] hover:bg-[#181d2d] text-white text-xs font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-xs"
         >
           {isExecuting ? (
             <>

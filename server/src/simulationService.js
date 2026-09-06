@@ -4,6 +4,7 @@ import { CONFIG } from './config.js';
 import { ApiError, ErrorCode } from './errors.js';
 import { getRouterPath, resolveToken } from './tokenWhitelist.js';
 import { getRouterContract, getProvider, estimateGasPrice } from './chain.js';
+import { logger, LogCategory } from './logger.js';
 
 // Base testnet price references for fallback estimation (ETH ≈ $2600, LINK ≈ $12, DAI/USDC ≈ $1)
 const PRICE_REFERENCES_USD = {
@@ -52,7 +53,7 @@ export async function getLiveExchangeRate(tokenASymbol, tokenBSymbol, customAmou
     customOutput = (customAmountA * rateAtoB).toFixed(4);
   }
 
-  return {
+  const result = {
     tokenA: tokenA.symbol,
     tokenB: tokenB.symbol,
     rateAtoB: rateAtoB > 10 ? rateAtoB.toFixed(2) : rateAtoB.toFixed(4),
@@ -60,6 +61,9 @@ export async function getLiveExchangeRate(tokenASymbol, tokenBSymbol, customAmou
     customAmountA,
     customOutput
   };
+
+  logger.info(LogCategory.SIMULATION, `Uniswap V2 rate: 1 ${tokenA.symbol} = ${result.rateAtoB} ${tokenB.symbol} (1 ${tokenB.symbol} = ${result.rateBtoA} ${tokenA.symbol})`);
+  return result;
 }
 
 export async function simulateTrade(validatedData) {
@@ -118,6 +122,8 @@ export async function simulateTrade(validatedData) {
 
   const proposalId = crypto.randomUUID();
   const expiresAt = Date.now() + CONFIG.proposalTtlSeconds * 1000;
+
+  logger.info(LogCategory.SIMULATION, `Simulated swap: ${numericAmountIn} ${tokenInMeta.symbol} -> ~${estimatedOutFormatted} ${tokenOutMeta.symbol} (est. gas: ${estimatedGasEth} ETH, impact: ${priceImpactPercent.toFixed(2)}%)`);
 
   return {
     proposalId,
