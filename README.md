@@ -70,7 +70,7 @@ PORT=5001
 SEPOLIA_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com
 
 # Burner Wallet Private Key (TESTNET ONLY)
-PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+PRIVATE_KEY=your_sepolia_burner_private_key
 
 # Uniswap V2 Router on Sepolia
 UNISWAP_V2_ROUTER_ADDRESS=0xC532a74256D3Db42D0Bf7a0400fEFDbad7694008
