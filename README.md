@@ -1,4 +1,4 @@
-# SwapChat — NLP-Powered Crypto Trading Chatbot
+# SwapChat NLP-Powered Crypto Trading Chatbot
 
 > **A chat interface that turns plain-English trade instructions into confirmed, on-chain swaps on Ethereum Sepolia.**
 
