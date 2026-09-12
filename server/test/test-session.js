@@ -62,7 +62,29 @@ async function runSessionTests() {
   assert.ok(turn3.message.includes(execution.receipt.receiptId) || turn3.message.includes('ETH'));
   console.log('  PASS: Session memory answers past trade inquiry');
 
-  console.log('Results: 4/4 session memory tests passed.');
+  // Test 6: Turn 4 - Inquiry about last transaction (exact phrase from user prompt)
+  console.log('  Turn 4: User asks "what was my last transaction"...');
+  const turn4 = await parseUserIntent('what was my last transaction', sessionId);
+  assert.strictEqual(turn4.isTrade, false);
+  assert.ok(turn4.message.includes(execution.receipt.receiptId));
+  assert.ok(turn4.message.includes('Sold:') || turn4.message.includes('ETH'));
+  console.log('  PASS: Session memory answers "what was my last transaction"');
+
+  // Test 7: Turn 5 - Inquiry with trailing question mark
+  console.log('  Turn 5: User asks "what was my last transaction ?" ...');
+  const turn5 = await parseUserIntent('what was my last transaction ?', sessionId);
+  assert.strictEqual(turn5.isTrade, false);
+  assert.ok(turn5.message.includes(execution.receipt.receiptId));
+  console.log('  PASS: Session memory answers "what was my last transaction ?"');
+
+  // Test 8: Turn 6 - Inquiry about transaction history / all transactions
+  console.log('  Turn 6: User asks "transaction history"...');
+  const turn6 = await parseUserIntent('transaction history', sessionId);
+  assert.strictEqual(turn6.isTrade, false);
+  assert.ok(turn6.message.includes(execution.receipt.receiptId));
+  console.log('  PASS: Session memory answers "transaction history"');
+
+  console.log('Results: 8/8 session memory tests passed.');
   process.exit(0);
 }
 

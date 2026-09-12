@@ -11,7 +11,8 @@
     "test:db": "node test/test-db.js",
     "test:api": "node test/test-api.js",
     "test:session": "node test/test-session.js",
-    "test:all": "node test/test-validation.js && node test/test-db.js && node test/test-session.js",
+    "test:nlp": "node test/test-transaction-nlp.js",
+    "test:all": "node test/test-validation.js && node test/test-db.js && node test/test-transaction-nlp.js && node test/test-session.js",
     "create-wallet": "node src/createWallet.js"
   },
   "dependencies": {
@@ -19,5 +20,8 @@
     "dotenv": "^16.4.5",
     "ethers": "^6.13.2",
     "express": "^4.21.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
   }
 }

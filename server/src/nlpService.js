@@ -2,6 +2,7 @@ import { CONFIG } from './config.js';
 import { resolveToken } from './tokenWhitelist.js';
 import { getWalletBalances } from './chain.js';
 import { getLiveExchangeRate } from './simulationService.js';
+import { getAllTransactions } from './db.js';
 
 // In-memory multi-turn session store
 const sessionStore = new Map();
@@ -32,7 +33,107 @@ export function recordSessionTrade(sessionId, receipt) {
 
 export function getSessionTrades(sessionId) {
   const session = getOrCreateSession(sessionId);
-  return session.trades;
+  return getRecentTradesForSession(session);
+}
+
+export function getRecentTradesForSession(session, limit = 10) {
+  let trades = session?.trades ? [...session.trades] : [];
+  if (trades.length === 0 && session?.sessionId) {
+    try {
+      const dbTrades = getAllTransactions(limit, session.sessionId);
+      if (dbTrades && dbTrades.length > 0) {
+        trades = dbTrades.reverse();
+      }
+    } catch {
+      // Ignore DB read error in in-memory mode
+    }
+  }
+  return trades;
+}
+
+export function handleTransactionHistoryInquiry(cleanPrompt, session) {
+  const lower = cleanPrompt.toLowerCase().trim();
+
+  // Pattern detection for transaction/trade/swap/receipt history inquiries
+  const isHistoryQuery =
+    lower.includes('transaction') ||
+    lower.includes('trade history') ||
+    lower.includes('past trade') ||
+    lower.includes('last trade') ||
+    lower.includes('previous trade') ||
+    lower.includes('recent trade') ||
+    lower.includes('my trade') ||
+    lower.includes('past swap') ||
+    lower.includes('last swap') ||
+    lower.includes('previous swap') ||
+    lower.includes('recent swap') ||
+    lower.includes('my swap') ||
+    lower.includes('receipt') ||
+    lower.includes('history') ||
+    lower.includes('what did i trade') ||
+    lower.includes('what did i swap') ||
+    lower.includes('what did i just trade') ||
+    lower.includes('what did i just swap') ||
+    lower.includes('what have i traded') ||
+    lower.includes('what have i swapped') ||
+    /(?:what|show|view|get|list|check|tell)\s+(?:was|is|are|me)?\s*(?:my)?\s*(?:last|recent|past|previous|latest)?\s*(?:transaction|trade|swap|tx|receipt)s?/i.test(lower);
+
+  // Exclude explicit swap execution commands (e.g. "swap 0.1 eth for usdc")
+  const isDirectSwapCommand = /^(?:swap|trade|buy|sell|convert|exchange)\s+[0-9]/i.test(lower);
+
+  if (!isHistoryQuery || isDirectSwapCommand) {
+    return null;
+  }
+
+  const trades = getRecentTradesForSession(session, 10);
+
+  if (!trades || trades.length === 0) {
+    const message = 'You have not executed any trades or transactions in this session yet. Try: **"swap 0.05 ETH for USDC"**.';
+    session.history.push({ role: 'user', text: cleanPrompt });
+    session.history.push({ role: 'model', text: message });
+    return {
+      isTrade: false,
+      message
+    };
+  }
+
+  const isAskingForLast =
+    lower.includes('last') ||
+    lower.includes('previous') ||
+    lower.includes('latest') ||
+    lower.includes('just') ||
+    trades.length === 1;
+
+  let responseMsg = '';
+
+  if (isAskingForLast) {
+    const lastTrade = trades[trades.length - 1];
+    const timeStr = lastTrade.timestamp ? new Date(lastTrade.timestamp).toLocaleTimeString() : 'Recent';
+    const txLink = lastTrade.explorerUrl || (lastTrade.txHash ? `https://sepolia.etherscan.io/tx/${lastTrade.txHash}` : null);
+    const txDisplay = txLink
+      ? `[${(lastTrade.txHash || '').slice(0, 10)}...](${txLink})`
+      : 'Simulated Testnet';
+
+    responseMsg = `**Your Last Executed Transaction (Sepolia):**\n• **Sold:** ${lastTrade.amountIn} ${lastTrade.tokenIn}\n• **Received:** ${lastTrade.amountOut} ${lastTrade.tokenOut}\n• **Effective Rate:** 1 ${lastTrade.tokenIn} ≈ ${lastTrade.rate} ${lastTrade.tokenOut}\n• **Receipt ID:** \`${lastTrade.receiptId}\`\n• **Status:** ${lastTrade.status || 'Confirmed'}\n• **Time:** ${timeStr}\n• **Tx Hash:** ${txDisplay}`;
+  } else {
+    const recentTrades = [...trades].slice(-5).reverse();
+    const tradeLines = recentTrades.map((t) => {
+      const txLink = t.explorerUrl || (t.txHash ? `https://sepolia.etherscan.io/tx/${t.txHash}` : null);
+      const txDisplay = txLink ? `[${(t.txHash || '').slice(0, 10)}...](${txLink})` : 'Simulated';
+      const timeStr = t.timestamp ? new Date(t.timestamp).toLocaleTimeString() : '';
+      return `• **${t.amountIn} ${t.tokenIn} → ${t.amountOut} ${t.tokenOut}** | \`${t.receiptId}\` | ${txDisplay} ${timeStr ? `(${timeStr})` : ''}`;
+    }).join('\n');
+
+    responseMsg = `**Your Recent Session Transactions (Sepolia):**\n\n${tradeLines}\n\n*Total Transactions: ${trades.length}*`;
+  }
+
+  session.history.push({ role: 'user', text: cleanPrompt });
+  session.history.push({ role: 'model', text: responseMsg });
+
+  return {
+    isTrade: false,
+    message: responseMsg
+  };
 }
 
 export function clearSessionHistory(sessionId) {
@@ -70,6 +171,12 @@ export async function parseUserIntent(prompt, sessionId = null) {
     } catch {
       // Fall through to LLM
     }
+  }
+
+  // Handle transaction & trade history inquiries directly with session/DB records
+  const historyResult = handleTransactionHistoryInquiry(cleanPrompt, session);
+  if (historyResult) {
+    return historyResult;
   }
 
   // Handle direct price inquiries and target amount requests (e.g. "get 1 eth for usdc", "price of eth")
@@ -232,15 +339,16 @@ async function handlePriceAndExchangeInquiry(cleanPrompt, session) {
 }
 
 function buildTradeHistoryContext(session) {
-  if (!session?.trades?.length) {
+  const trades = getRecentTradesForSession(session, 5);
+  if (!trades.length) {
     return 'No past trades executed yet in this session.';
   }
 
-  return session.trades
+  return trades
     .slice(-5)
     .map(
       (t) =>
-        `- Receipt ${t.receiptId}: Swapped ${t.amountIn} ${t.tokenIn} for ${t.amountOut} ${t.tokenOut} (tx: ${t.txHash.slice(0, 10)}..., time: ${new Date(t.timestamp).toLocaleTimeString()})`
+        `- Receipt ${t.receiptId}: Swapped ${t.amountIn} ${t.tokenIn} for ${t.amountOut} ${t.tokenOut} (tx: ${(t.txHash || '').slice(0, 10)}..., time: ${t.timestamp ? new Date(t.timestamp).toLocaleTimeString() : 'recent'})`
     )
     .join('\n');
 }
@@ -345,19 +453,10 @@ Return ONLY valid raw JSON matching one of the formats above.`;
 function parseWithRuleEngine(prompt, session) {
   const lower = prompt.toLowerCase();
 
-  // Check for trade history inquiries in fallback mode
-  if (lower.includes('last trade') || lower.includes('receipt') || lower.includes('trade history') || lower.includes('past trades')) {
-    if (!session?.trades?.length) {
-      return {
-        isTrade: false,
-        message: 'You have not executed any trades in this session yet.'
-      };
-    }
-    const lastTrade = session.trades[session.trades.length - 1];
-    return {
-      isTrade: false,
-      message: `Your last executed trade was **${lastTrade.amountIn} ${lastTrade.tokenIn}** for **${lastTrade.amountOut} ${lastTrade.tokenOut}**.\nReceipt ID: \`${lastTrade.receiptId}\`\nTx: [View on Etherscan](${lastTrade.explorerUrl})`
-    };
+  // Check for trade and transaction history inquiries in fallback mode
+  const historyCheck = handleTransactionHistoryInquiry(prompt, session);
+  if (historyCheck) {
+    return historyCheck;
   }
 
   // Network detection

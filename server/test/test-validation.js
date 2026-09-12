@@ -110,7 +110,7 @@ async function runTests() {
 
   // 8. Simulation & Proposal lifecycle
   await test('Simulation: Valid trade proposal generates quote & TTL', async () => {
-    const parsed = await parseUserIntent('swap 0.05 ETH for USDC');
+    const parsed = await parseUserIntent('swap 0.001 ETH for USDC');
     const validated = await validateTradeIntent(parsed.intent);
     const proposal = await simulateTrade(validated);
 
